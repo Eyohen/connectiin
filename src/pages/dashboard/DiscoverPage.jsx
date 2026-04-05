@@ -16,6 +16,7 @@ const businesses = [
 const DiscoverPage = () => {
   const [selectedIndustry, setSelectedIndustry] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBusiness, setSelectedBusiness] = useState(null);
 
   const filtered = businesses.filter((b) => {
     const matchesIndustry = selectedIndustry === 'All' || b.industry === selectedIndustry;
@@ -93,13 +94,89 @@ const DiscoverPage = () => {
               <button className="flex-1 py-2 text-sm font-medium text-white bg-accent rounded-lg hover:bg-accent-dark transition-colors">
                 Connect
               </button>
-              <button className="py-2 px-3 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <button
+                onClick={() => setSelectedBusiness(biz)}
+                className="py-2 px-3 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              >
                 View Profile
               </button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* View Profile Modal */}
+      {selectedBusiness && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedBusiness(null)}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 w-full max-w-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between mb-5">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xl">
+                  {selectedBusiness.avatar}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-gray-900">{selectedBusiness.name}</h2>
+                    {selectedBusiness.verified && (
+                      <svg className="w-5 h-5 text-accent" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+                      </svg>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500">{selectedBusiness.type} &middot; {selectedBusiness.location}</p>
+                  <span className="inline-block mt-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                    {selectedBusiness.match}% match
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedBusiness(null)}
+                className="text-gray-400 hover:text-gray-600 mt-1"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Industry badge */}
+            <span className="inline-block px-3 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full mb-4">
+              {selectedBusiness.industry}
+            </span>
+
+            {/* About */}
+            <div className="mb-5">
+              <h3 className="text-sm font-semibold text-gray-700 mb-1">About</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">{selectedBusiness.bio}</p>
+            </div>
+
+            <hr className="border-gray-100 mb-5" />
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setSelectedBusiness(null)}
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-accent rounded-lg hover:bg-accent-dark transition-colors"
+              >
+                Connect
+              </button>
+              <button
+                onClick={() => setSelectedBusiness(null)}
+                className="flex-1 py-2.5 text-sm font-semibold text-accent border border-accent rounded-lg hover:bg-accent hover:text-white transition-all"
+              >
+                Send Message
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

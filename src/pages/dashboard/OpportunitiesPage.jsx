@@ -14,6 +14,7 @@ const opportunities = [
 const OpportunitiesPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showPostModal, setShowPostModal] = useState(false);
+  const [selectedOpportunity, setSelectedOpportunity] = useState(null);
 
   const filtered = selectedCategory === 'All'
     ? opportunities
@@ -75,13 +76,75 @@ const OpportunitiesPage = () => {
                 <span className="text-sm font-medium text-gray-900">{opp.budget}</span>
                 <span className="text-xs text-gray-400">{opp.responses} responses</span>
               </div>
-              <button className="px-4 py-2 text-sm font-medium text-accent border border-accent rounded-lg hover:bg-accent hover:text-white transition-all">
+              <button
+                onClick={() => setSelectedOpportunity(opp)}
+                className="px-4 py-2 text-sm font-medium text-accent border border-accent rounded-lg hover:bg-accent hover:text-white transition-all"
+              >
                 Express Interest
               </button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Express Interest Modal */}
+      {selectedOpportunity && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedOpportunity(null)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-gray-900">Express Interest</h2>
+              <button onClick={() => setSelectedOpportunity(null)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Opportunity summary */}
+            <div className="bg-gray-50 rounded-xl p-4 mb-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">{selectedOpportunity.title}</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">{selectedOpportunity.company} &middot; {selectedOpportunity.location}</p>
+                </div>
+                <span className="shrink-0 px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600">
+                  {selectedOpportunity.category}
+                </span>
+              </div>
+              <p className="text-xs font-medium text-gray-700 mt-2">{selectedOpportunity.budget}</p>
+            </div>
+
+            <form className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Your Message / Proposal</label>
+                <textarea
+                  rows={4}
+                  placeholder="Describe how you can help or what you bring to this opportunity..."
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Contact Preference</label>
+                <div className="flex gap-3">
+                  {['Email', 'Platform Message'].map((opt) => (
+                    <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="contactPref" defaultChecked={opt === 'Platform Message'} className="accent-accent" />
+                      <span className="text-sm text-gray-600">{opt}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedOpportunity(null)}
+                className="w-full py-3 bg-accent text-white font-semibold rounded-lg hover:bg-accent-dark transition-colors"
+              >
+                Submit Interest
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Post Modal */}
       {showPostModal && (
