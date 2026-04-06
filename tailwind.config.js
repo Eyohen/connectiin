@@ -7,19 +7,24 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        'sans': ['Geist', 'sans-serif'],
+        'sans': ['Neue Haas Grotesk Display', 'Neue Haas Grotesk', 'Inter', 'Geist', 'sans-serif'],
       },
       colors: {
         'navy': {
-          900: '#0B0F19',
-          800: '#0F1425',
-          700: '#141B2D',
-          600: '#1A2340',
+          900: '#111827',
+          800: '#162034',
+          700: '#1c2940',
+          600: '#243452',
         },
         'accent': {
-          DEFAULT: '#4A90D9',
-          light: '#6BA5E7',
-          dark: '#3A7BC8',
+          DEFAULT: '#1773E2',
+          light: '#3d8de6',
+          dark: '#1259b8',
+        },
+        'brand-green': {
+          DEFAULT: '#10B981',
+          light: '#34d399',
+          dark: '#059669',
         },
       },
       animation: {

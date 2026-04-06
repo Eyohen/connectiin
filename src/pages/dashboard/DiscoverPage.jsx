@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import AvailabilityCalendar from '../../components/bookings/AvailabilityCalendar';
+import BookingModal from '../../components/bookings/BookingModal';
 
 const industries = ['All', 'Technology', 'Finance', 'Healthcare', 'Education', 'Marketing', 'Manufacturing'];
 
@@ -17,6 +19,20 @@ const DiscoverPage = () => {
   const [selectedIndustry, setSelectedIndustry] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBusiness, setSelectedBusiness] = useState(null);
+  const [modalTab, setModalTab] = useState('About');
+  const [selectedSlot, setSelectedSlot] = useState(null);
+
+  const openBusiness = (biz) => {
+    setSelectedBusiness(biz);
+    setModalTab('About');
+    setSelectedSlot(null);
+  };
+
+  const closeModal = () => {
+    setSelectedBusiness(null);
+    setModalTab('About');
+    setSelectedSlot(null);
+  };
 
   const filtered = businesses.filter((b) => {
     const matchesIndustry = selectedIndustry === 'All' || b.industry === selectedIndustry;
@@ -95,7 +111,7 @@ const DiscoverPage = () => {
                 Connect
               </button>
               <button
-                onClick={() => setSelectedBusiness(biz)}
+                onClick={() => openBusiness(biz)}
                 className="py-2 px-3 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 View Profile
@@ -109,16 +125,18 @@ const DiscoverPage = () => {
       {selectedBusiness && (
         <div
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-          onClick={() => setSelectedBusiness(null)}
+          onClick={closeModal}
         >
           <div
-            className="bg-white rounded-2xl p-6 w-full max-w-lg"
+            className={`bg-white rounded-2xl w-full flex flex-col max-h-[90vh] transition-all duration-200 ${
+              modalTab === 'Bookings' ? 'max-w-3xl' : 'max-w-lg'
+            }`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-start justify-between mb-5">
+            <div className="flex items-start justify-between p-6 pb-4">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xl">
+                <div className="w-16 h-16 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-xl flex-shrink-0">
                   {selectedBusiness.avatar}
                 </div>
                 <div>
@@ -137,8 +155,8 @@ const DiscoverPage = () => {
                 </div>
               </div>
               <button
-                onClick={() => setSelectedBusiness(null)}
-                className="text-gray-400 hover:text-gray-600 mt-1"
+                onClick={closeModal}
+                className="text-gray-400 hover:text-gray-600 mt-1 flex-shrink-0"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -146,36 +164,84 @@ const DiscoverPage = () => {
               </button>
             </div>
 
-            {/* Industry badge */}
-            <span className="inline-block px-3 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full mb-4">
-              {selectedBusiness.industry}
-            </span>
-
-            {/* About */}
-            <div className="mb-5">
-              <h3 className="text-sm font-semibold text-gray-700 mb-1">About</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">{selectedBusiness.bio}</p>
+            {/* Industry badge + tabs */}
+            <div className="px-6 pb-4 flex items-center justify-between">
+              <span className="inline-block px-3 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full">
+                {selectedBusiness.industry}
+              </span>
+              <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
+                {['About', 'Bookings'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setModalTab(tab)}
+                    className={`px-4 py-1 text-xs font-medium rounded-md transition-all ${
+                      modalTab === tab
+                        ? 'bg-white text-gray-900 font-semibold shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {tab === 'Bookings' ? (
+                      <span className="inline-flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                        </svg>
+                        Bookings
+                      </span>
+                    ) : tab}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <hr className="border-gray-100 mb-5" />
+            <hr className="border-gray-100" />
 
-            {/* Actions */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setSelectedBusiness(null)}
-                className="flex-1 py-2.5 text-sm font-semibold text-white bg-accent rounded-lg hover:bg-accent-dark transition-colors"
-              >
-                Connect
-              </button>
-              <button
-                onClick={() => setSelectedBusiness(null)}
-                className="flex-1 py-2.5 text-sm font-semibold text-accent border border-accent rounded-lg hover:bg-accent hover:text-white transition-all"
-              >
-                Send Message
-              </button>
+            {/* Tab content */}
+            <div className="p-6 overflow-y-auto flex-1">
+              {modalTab === 'About' && (
+                <>
+                  <div className="mb-5">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-1">About</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">{selectedBusiness.bio}</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={closeModal}
+                      className="flex-1 py-2.5 text-sm font-semibold text-white bg-accent rounded-lg hover:bg-accent-dark transition-colors"
+                    >
+                      Connect
+                    </button>
+                    <button
+                      onClick={closeModal}
+                      className="flex-1 py-2.5 text-sm font-semibold text-accent border border-accent rounded-lg hover:bg-accent hover:text-white transition-all"
+                    >
+                      Send Message
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {modalTab === 'Bookings' && (
+                <AvailabilityCalendar
+                  mode="view"
+                  onBook={(slot) => setSelectedSlot(slot)}
+                />
+              )}
             </div>
           </div>
         </div>
+      )}
+
+      {/* Booking confirmation modal */}
+      {selectedSlot && selectedBusiness && (
+        <BookingModal
+          slot={selectedSlot}
+          businessName={selectedBusiness.name}
+          onClose={() => setSelectedSlot(null)}
+          onConfirm={() => {
+            setSelectedSlot(null);
+            closeModal();
+          }}
+        />
       )}
     </div>
   );

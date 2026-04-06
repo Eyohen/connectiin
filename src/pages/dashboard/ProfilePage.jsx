@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import AvailabilityCalendar from '../../components/bookings/AvailabilityCalendar';
 
 const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState('Overview');
 
   const profile = {
     name: 'Acme Corp',
@@ -21,23 +23,69 @@ const ProfilePage = () => {
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Business Profile</h1>
           <p className="text-gray-500 mt-1">Manage how your business appears to others on Connectin.</p>
         </div>
-        <button
-          onClick={() => setIsEditing(!isEditing)}
-          className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
-            isEditing
-              ? 'bg-green-600 text-white hover:bg-green-700'
-              : 'bg-accent text-white hover:bg-accent-dark'
-          }`}
-        >
-          {isEditing ? 'Save Changes' : 'Edit Profile'}
-        </button>
+        {activeTab === 'Overview' && (
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+              isEditing
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-accent text-white hover:bg-accent-dark'
+            }`}
+          >
+            {isEditing ? 'Save Changes' : 'Edit Profile'}
+          </button>
+        )}
       </div>
 
+      {/* Tab bar */}
+      <div className="flex gap-1 p-1 bg-gray-100 rounded-lg w-fit mb-7">
+        {['Overview', 'Bookings'].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${
+              activeTab === tab
+                ? 'bg-white text-gray-900 font-semibold shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab === 'Bookings' && (
+              <span className="inline-flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+                Bookings
+              </span>
+            )}
+            {tab !== 'Bookings' && tab}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'Bookings' && (
+        <div className="max-w-3xl">
+          <div className="mb-6">
+            <h2 className="text-base font-semibold text-gray-900">Manage Your Availability</h2>
+            <p className="text-sm text-gray-500 mt-1">Set the times when you're open for 30-minute meetings. Others can book these slots from your profile.</p>
+          </div>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/5 border border-accent/15 rounded-full mb-6">
+            <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-xs font-medium text-accent">30-minute meeting slots</span>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <AvailabilityCalendar mode="edit" />
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'Overview' && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main info */}
         <div className="lg:col-span-2 space-y-6">
@@ -175,6 +223,7 @@ const ProfilePage = () => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };
