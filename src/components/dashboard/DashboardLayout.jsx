@@ -91,7 +91,7 @@ const DashboardLayout = () => {
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-white/5">
           <Link to="/" className="text-white font-extrabold text-lg tracking-wider">
-            CONNECTIIN
+            CONNECTIN
           </Link>
         </div>
 

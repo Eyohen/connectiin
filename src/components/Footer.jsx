@@ -17,7 +17,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
           <div className="md:col-span-2">
-            <span className="text-white font-extrabold text-lg tracking-wider">CONNECTIIN</span>
+            <span className="text-white font-extrabold text-lg tracking-wider">CONNECTIN</span>
             <p className="text-gray-500 text-sm mt-3 max-w-sm leading-relaxed">
               A smart B2B networking platform designed to help businesses find qualified partners, service providers, investors, collaborators, and growth opportunities.
             </p>

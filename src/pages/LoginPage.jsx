@@ -20,7 +20,7 @@ const LoginPage = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-navy-900 to-navy-900" />
         <div className="relative max-w-md">
           <Link to="/" className="text-white font-extrabold text-2xl tracking-wider mb-8 block">
-            CONNECTIIN
+            CONNECTIN
           </Link>
           <h1 className="text-4xl font-bold text-white mb-4 leading-tight">
             Your next big advantage is one connection away.
@@ -48,7 +48,7 @@ const LoginPage = () => {
         >
           {/* Mobile logo */}
           <Link to="/" className="lg:hidden text-white font-extrabold text-xl tracking-wider mb-10 block">
-            CONNECTIIN
+            CONNECTIN
           </Link>
 
           <h2 className="text-3xl font-bold text-white mb-2">Welcome back</h2>
