@@ -1,31 +1,114 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { api } from '../../lib/api';
 
-const categories = ['All', 'Partnerships', 'Contracts', 'Joint Ventures', 'Vendor Sourcing', 'Investment'];
+const categories = ['All', 'Partnerships', 'Contracts', 'Joint Ventures', 'Vendor Sourcing', 'Investment', 'Jobs'];
+const contactOptions = ['Email', 'Platform Message'];
 
-const opportunities = [
-  { id: 1, title: 'Looking for SaaS Integration Partner', company: 'TechVentures Inc.', category: 'Partnerships', location: 'Remote', posted: '2 hours ago', description: 'We need a SaaS partner to integrate our CRM with existing enterprise tools. Must have experience with API development and B2B integrations.', budget: '$10k - $25k', responses: 8 },
-  { id: 2, title: 'Supply Chain Management Vendor Needed', company: 'Meridian Logistics', category: 'Vendor Sourcing', location: 'Lagos, Nigeria', posted: '5 hours ago', description: 'Seeking a reliable vendor for warehouse management system implementation across 3 locations.', budget: '$50k - $100k', responses: 12 },
-  { id: 3, title: 'Joint Venture: EdTech Expansion into East Africa', company: 'EduPrime Africa', category: 'Joint Ventures', location: 'East Africa', posted: '1 day ago', description: 'Looking for a partner to co-invest and co-develop our digital learning platform for the East African market.', budget: 'Equity partnership', responses: 5 },
-  { id: 4, title: 'Marketing Strategy Consultant for Product Launch', company: 'NovaBridge Labs', category: 'Contracts', location: 'Remote', posted: '1 day ago', description: 'Need an experienced B2B marketing consultant to develop and execute our go-to-market strategy for a new AI product.', budget: '$15k - $30k', responses: 15 },
-  { id: 5, title: 'Seed Investment Round: HealthTech Startup', company: 'GreenScale Solutions', category: 'Investment', location: 'Nairobi, Kenya', posted: '2 days ago', description: 'Raising $500k seed round for our health-tech platform. Looking for investors with healthcare or impact focus.', budget: '$500k raise', responses: 20 },
-  { id: 6, title: 'Contract: Financial Advisory Services', company: 'Keystone Partners', category: 'Contracts', location: 'Dar es Salaam', posted: '3 days ago', description: 'Seeking a corporate finance advisory firm for an upcoming M&A transaction in the manufacturing sector.', budget: 'Negotiable', responses: 7 },
-];
+const getErrorMessage = (error, fallback) => error.response?.data?.message || error.message || fallback;
+
+const defaultOpportunityForm = {
+  title: '',
+  category: 'Partnerships',
+  description: '',
+  budget: '',
+  location: '',
+};
 
 const OpportunitiesPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showPostModal, setShowPostModal] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState(null);
+  const [opportunities, setOpportunities] = useState([]);
+  const [opportunityForm, setOpportunityForm] = useState(defaultOpportunityForm);
+  const [interestForm, setInterestForm] = useState({ message: '', contactPreference: 'Platform Message' });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [status, setStatus] = useState('');
 
-  const filtered = selectedCategory === 'All'
-    ? opportunities
-    : opportunities.filter((o) => o.category === selectedCategory);
+  const loadOpportunities = async () => {
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const response = await api.get('/opportunities');
+      setOpportunities(response.data.data || []);
+    } catch (loadError) {
+      setError(getErrorMessage(loadError, 'Failed to load opportunities'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOpportunities();
+  }, []);
+
+  const filtered = useMemo(() => (
+    selectedCategory === 'All'
+      ? opportunities
+      : opportunities.filter((opportunity) => opportunity.category === selectedCategory)
+  ), [opportunities, selectedCategory]);
+
+  const handleOpportunityChange = (event) => {
+    const { name, value } = event.target;
+    setOpportunityForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleInterestChange = (event) => {
+    const { name, value } = event.target;
+    setInterestForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const createOpportunity = async (event) => {
+    event.preventDefault();
+    setError('');
+    setStatus('');
+    setIsSubmitting(true);
+
+    try {
+      await api.post('/opportunities', opportunityForm);
+      setStatus('Opportunity posted successfully.');
+      setShowPostModal(false);
+      setOpportunityForm(defaultOpportunityForm);
+      await loadOpportunities();
+    } catch (submitError) {
+      setError(getErrorMessage(submitError, 'Failed to post opportunity'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const submitInterest = async (event) => {
+    event.preventDefault();
+    setError('');
+    setStatus('');
+    setIsSubmitting(true);
+
+    try {
+      await api.post(`/opportunities/${selectedOpportunity.id}/interest`, interestForm);
+      setStatus('Interest submitted successfully.');
+      setSelectedOpportunity(null);
+      setInterestForm({ message: '', contactPreference: 'Platform Message' });
+      await loadOpportunities();
+    } catch (submitError) {
+      setError(getErrorMessage(submitError, 'Failed to submit interest'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const postedDate = (createdAt) => {
+    if (!createdAt) return 'Recently';
+    return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(createdAt));
+  };
 
   return (
     <div>
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Opportunity Board</h1>
-          <p className="text-gray-500 mt-1">Discover partnerships, contracts, and growth opportunities.</p>
+          <p className="text-gray-500 mt-1">Discover partnerships, contracts, jobs, and growth opportunities.</p>
         </div>
         <button
           onClick={() => setShowPostModal(true)}
@@ -38,56 +121,75 @@ const OpportunitiesPage = () => {
         </button>
       </div>
 
-      {/* Category filters */}
+      {error ? (
+        <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
+      {status ? (
+        <div className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {status}
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap gap-2 mb-6">
-        {categories.map((cat) => (
+        {categories.map((category) => (
           <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
+            key={category}
+            onClick={() => setSelectedCategory(category)}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              selectedCategory === cat
+              selectedCategory === category
                 ? 'bg-accent text-white'
                 : 'bg-white border border-gray-200 text-gray-600 hover:border-accent hover:text-accent'
             }`}
           >
-            {cat}
+            {category}
           </button>
         ))}
       </div>
 
-      {/* Opportunities list */}
-      <div className="space-y-4">
-        {filtered.map((opp) => (
-          <div key={opp.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="text-base font-semibold text-gray-900">{opp.title}</h3>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  {opp.company} &middot; {opp.location} &middot; {opp.posted}
-                </p>
+      {isLoading ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-sm text-gray-500">
+          Loading opportunities...
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+          <h3 className="font-semibold text-gray-900">No opportunities found</h3>
+          <p className="text-sm text-gray-500 mt-1">Try another category or post the first opportunity.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map((opportunity) => (
+            <div key={opportunity.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">{opportunity.title}</h3>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    {opportunity.owner?.name} &middot; {opportunity.location} &middot; {postedDate(opportunity.createdAt)}
+                  </p>
+                </div>
+                <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                  {opportunity.category}
+                </span>
               </div>
-              <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
-                {opp.category}
-              </span>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">{opp.description}</p>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-gray-900">{opp.budget}</span>
-                <span className="text-xs text-gray-400">{opp.responses} responses</span>
+              <p className="text-sm text-gray-600 mb-4">{opportunity.description}</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-gray-900">{opportunity.budget || 'Negotiable'}</span>
+                  <span className="text-xs text-gray-400">{opportunity.responsesCount} responses</span>
+                </div>
+                <button
+                  onClick={() => setSelectedOpportunity(opportunity)}
+                  className="px-4 py-2 text-sm font-medium text-accent border border-accent rounded-lg hover:bg-accent hover:text-white transition-all"
+                >
+                  Express Interest
+                </button>
               </div>
-              <button
-                onClick={() => setSelectedOpportunity(opp)}
-                className="px-4 py-2 text-sm font-medium text-accent border border-accent rounded-lg hover:bg-accent hover:text-white transition-all"
-              >
-                Express Interest
-              </button>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* Express Interest Modal */}
       {selectedOpportunity && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedOpportunity(null)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
@@ -100,25 +202,21 @@ const OpportunitiesPage = () => {
               </button>
             </div>
 
-            {/* Opportunity summary */}
             <div className="bg-gray-50 rounded-xl p-4 mb-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900">{selectedOpportunity.title}</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">{selectedOpportunity.company} &middot; {selectedOpportunity.location}</p>
-                </div>
-                <span className="shrink-0 px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600">
-                  {selectedOpportunity.category}
-                </span>
-              </div>
-              <p className="text-xs font-medium text-gray-700 mt-2">{selectedOpportunity.budget}</p>
+              <h3 className="text-sm font-semibold text-gray-900">{selectedOpportunity.title}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{selectedOpportunity.owner?.name} &middot; {selectedOpportunity.location}</p>
+              <p className="text-xs font-medium text-gray-700 mt-2">{selectedOpportunity.budget || 'Negotiable'}</p>
             </div>
 
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={submitInterest}>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Your Message / Proposal</label>
                 <textarea
+                  name="message"
+                  value={interestForm.message}
+                  onChange={handleInterestChange}
                   rows={4}
+                  required
                   placeholder="Describe how you can help or what you bring to this opportunity..."
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none"
                 />
@@ -126,27 +224,33 @@ const OpportunitiesPage = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Contact Preference</label>
                 <div className="flex gap-3">
-                  {['Email', 'Platform Message'].map((opt) => (
-                    <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="contactPref" defaultChecked={opt === 'Platform Message'} className="accent-accent" />
-                      <span className="text-sm text-gray-600">{opt}</span>
+                  {contactOptions.map((option) => (
+                    <label key={option} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="contactPreference"
+                        value={option}
+                        checked={interestForm.contactPreference === option}
+                        onChange={handleInterestChange}
+                        className="accent-accent"
+                      />
+                      <span className="text-sm text-gray-600">{option}</span>
                     </label>
                   ))}
                 </div>
               </div>
               <button
-                type="button"
-                onClick={() => setSelectedOpportunity(null)}
-                className="w-full py-3 bg-accent text-white font-semibold rounded-lg hover:bg-accent-dark transition-colors"
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3 bg-accent text-white font-semibold rounded-lg hover:bg-accent-dark disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
               >
-                Submit Interest
+                {isSubmitting ? 'Submitting...' : 'Submit Interest'}
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* Post Modal */}
       {showPostModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowPostModal(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
@@ -158,33 +262,54 @@ const OpportunitiesPage = () => {
                 </svg>
               </button>
             </div>
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={createOpportunity}>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                <input type="text" placeholder="What are you looking for?" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
+                <input
+                  type="text"
+                  name="title"
+                  value={opportunityForm.title}
+                  onChange={handleOpportunityChange}
+                  required
+                  placeholder="What are you looking for?"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                <select className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent">
-                  {categories.filter(c => c !== 'All').map((c) => <option key={c}>{c}</option>)}
+                <select
+                  name="category"
+                  value={opportunityForm.category}
+                  onChange={handleOpportunityChange}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                >
+                  {categories.filter((category) => category !== 'All').map((category) => <option key={category}>{category}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea rows={4} placeholder="Describe the opportunity in detail..." className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none" />
+                <textarea
+                  name="description"
+                  value={opportunityForm.description}
+                  onChange={handleOpportunityChange}
+                  rows={4}
+                  required
+                  placeholder="Describe the opportunity in detail..."
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Budget</label>
-                  <input type="text" placeholder="e.g. $10k - $25k" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
+                  <input name="budget" value={opportunityForm.budget} onChange={handleOpportunityChange} type="text" placeholder="e.g. $10k - $25k" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                  <input type="text" placeholder="e.g. Remote" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
+                  <input name="location" value={opportunityForm.location} onChange={handleOpportunityChange} type="text" placeholder="e.g. Remote" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
                 </div>
               </div>
-              <button type="button" onClick={() => setShowPostModal(false)} className="w-full py-3 bg-accent text-white font-semibold rounded-lg hover:bg-accent-dark transition-colors">
-                Post Opportunity
+              <button type="submit" disabled={isSubmitting} className="w-full py-3 bg-accent text-white font-semibold rounded-lg hover:bg-accent-dark disabled:opacity-70 disabled:cursor-not-allowed transition-colors">
+                {isSubmitting ? 'Posting...' : 'Post Opportunity'}
               </button>
             </form>
           </div>

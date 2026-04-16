@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { api } from '../../lib/api';
 
 const navItems = [
   {
@@ -39,6 +41,15 @@ const navItems = [
     ),
   },
   {
+    name: 'Bookings',
+    path: '/dashboard/bookings',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 9h16.5M4.5 6.75h15A1.5 1.5 0 0121 8.25v10.5a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 18.75V8.25a1.5 1.5 0 011.5-1.5z" />
+      </svg>
+    ),
+  },
+  {
     name: 'Messages',
     path: '/dashboard/messages',
     icon: (
@@ -46,7 +57,6 @@ const navItems = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
       </svg>
     ),
-    badge: 3,
   },
   {
     name: 'My Profile',
@@ -71,12 +81,121 @@ const navItems = [
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const notificationRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, profile, logout } = useAuth();
 
   const isActive = (path) => {
     if (path === '/dashboard') return location.pathname === '/dashboard';
     return location.pathname.startsWith(path);
+  };
+
+  const displayName = user?.accountType === 'business'
+    ? profile?.businessName || profile?.contactName || user?.email
+    : profile?.displayName || [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || user?.email;
+  const subtitle = user?.accountType === 'business'
+    ? profile?.contactName || user?.email
+    : user?.email;
+  const initials = (displayName || 'CN')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
+
+  const loadNotifications = async () => {
+    setNotificationsLoading(true);
+
+    try {
+      const [listResponse, countResponse] = await Promise.all([
+        api.get('/notifications', { params: { limit: 8 } }),
+        api.get('/notifications/unread-count'),
+      ]);
+
+      setNotifications(listResponse.data.data?.notifications || []);
+      setUnreadCount(countResponse.data.data?.count || 0);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadNotifications();
+    const intervalId = window.setInterval(loadNotifications, 30000);
+
+    const handleFocus = () => loadNotifications();
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const markNotificationAsRead = async (notification) => {
+    if (!notification.isRead) {
+      setNotifications((current) => current.map((item) => (
+        item.id === notification.id ? { ...item, isRead: true } : item
+      )));
+      setUnreadCount((current) => Math.max(current - 1, 0));
+
+      try {
+        await api.put(`/notifications/${notification.id}/read`);
+      } catch (error) {
+        console.error('Failed to mark notification as read:', error);
+        loadNotifications();
+      }
+    }
+
+    setNotificationsOpen(false);
+    if (notification.actionUrl) {
+      navigate(notification.actionUrl);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    setNotifications((current) => current.map((item) => ({ ...item, isRead: true })));
+    setUnreadCount(0);
+
+    try {
+      await api.put('/notifications/read-all');
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      loadNotifications();
+    }
+  };
+
+  const notificationTime = (createdAt) => {
+    if (!createdAt) return 'Just now';
+    return new Intl.DateTimeFormat('en', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(createdAt));
   };
 
   return (
@@ -123,14 +242,14 @@ const DashboardLayout = () => {
         <div className="p-4 border-t border-white/5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center text-accent text-sm font-bold">
-              JD
+              {initials || 'CN'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-medium truncate">John Doe</p>
-              <p className="text-gray-500 text-xs truncate">Acme Corp</p>
+              <p className="text-white text-sm font-medium truncate">{displayName || 'Connectin User'}</p>
+              <p className="text-gray-500 text-xs truncate">{subtitle || 'Signed in'}</p>
             </div>
             <button
-              onClick={() => navigate('/login')}
+              onClick={handleLogout}
               className="text-gray-500 hover:text-white transition-colors"
               title="Logout"
             >
@@ -169,16 +288,80 @@ const DashboardLayout = () => {
 
           <div className="flex items-center gap-3">
             {/* Notifications */}
-            <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-              </svg>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
+            <div className="relative" ref={notificationRef}>
+              <button
+                onClick={() => {
+                  setNotificationsOpen((open) => !open);
+                  if (!notificationsOpen) loadNotifications();
+                }}
+                className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Notifications"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notificationsOpen && (
+                <div className="absolute right-0 mt-3 w-[min(360px,calc(100vw-2rem))] bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">Notifications</p>
+                      <p className="text-xs text-gray-500">{unreadCount} unread update{unreadCount === 1 ? '' : 's'}</p>
+                    </div>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllNotificationsAsRead}
+                        className="text-xs font-semibold text-accent hover:text-accent-dark"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-96 overflow-y-auto">
+                    {notificationsLoading && notifications.length === 0 ? (
+                      <div className="p-5 text-center text-sm text-gray-500">Loading notifications...</div>
+                    ) : notifications.length === 0 ? (
+                      <div className="p-5 text-center">
+                        <p className="text-sm font-semibold text-gray-900">No notifications yet</p>
+                        <p className="text-xs text-gray-500 mt-1">Important updates will appear here.</p>
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <button
+                          key={notification.id}
+                          onClick={() => markNotificationAsRead(notification)}
+                          className={`w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors ${
+                            notification.isRead ? 'bg-white' : 'bg-accent/5'
+                          }`}
+                        >
+                          <div className="flex gap-3">
+                            <span className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                              notification.isRead ? 'bg-gray-200' : 'bg-accent'
+                            }`} />
+                            <span className="min-w-0">
+                              <span className="block text-sm font-semibold text-gray-900">{notification.title}</span>
+                              <span className="block text-xs text-gray-600 mt-1 leading-relaxed">{notification.message}</span>
+                              <span className="block text-[11px] text-gray-400 mt-2">{notificationTime(notification.createdAt)}</span>
+                            </span>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Profile */}
             <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent text-xs font-bold">
-              JD
+              {initials || 'CN'}
             </div>
           </div>
         </header>

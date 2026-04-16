@@ -1,229 +1,330 @@
-import { useState } from 'react';
-import AvailabilityCalendar from '../../components/bookings/AvailabilityCalendar';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+
+const personalFields = [
+  'firstName',
+  'lastName',
+  'headline',
+  'bio',
+  'phone',
+  'website',
+  'country',
+  'state',
+  'city',
+  'address',
+];
+
+const businessFields = [
+  'businessName',
+  'contactName',
+  'businessType',
+  'industry',
+  'description',
+  'phone',
+  'website',
+  'country',
+  'state',
+  'city',
+  'address',
+];
+
+const getInitialFormData = (profile, accountType) => {
+  const fields = accountType === 'business' ? businessFields : personalFields;
+
+  return fields.reduce((values, field) => {
+    values[field] = profile?.[field] ?? '';
+    return values;
+  }, {});
+};
+
+const pickEditableFields = (values, accountType) => {
+  const fields = accountType === 'business' ? businessFields : personalFields;
+
+  return fields.reduce((payload, field) => {
+    payload[field] = values[field] ?? '';
+    return payload;
+  }, {});
+};
+
+const getInitials = (name) =>
+  (name || 'CN')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+
+const TextInput = ({ label, name, value, onChange, placeholder, type = 'text', helper }) => (
+  <label className="block">
+    <span className="block text-sm font-semibold text-gray-800 mb-1.5">{label}</span>
+    <input
+      type={type}
+      name={name}
+      value={value ?? ''}
+      onChange={onChange}
+      placeholder={placeholder}
+      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 shadow-sm transition focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/10"
+    />
+    {helper ? <span className="mt-1.5 block text-xs text-gray-500">{helper}</span> : null}
+  </label>
+);
+
+const TextArea = ({ label, name, value, onChange, placeholder, rows = 5, helper }) => (
+  <label className="block">
+    <span className="block text-sm font-semibold text-gray-800 mb-1.5">{label}</span>
+    <textarea
+      name={name}
+      value={value ?? ''}
+      onChange={onChange}
+      placeholder={placeholder}
+      rows={rows}
+      className="w-full resize-y rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 shadow-sm transition focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/10"
+    />
+    {helper ? <span className="mt-1.5 block text-xs text-gray-500">{helper}</span> : null}
+  </label>
+);
+
+const SectionCard = ({ title, description, children }) => (
+  <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div className="border-b border-gray-100 px-6 py-5">
+      <h2 className="text-base font-bold text-gray-950">{title}</h2>
+      {description ? <p className="mt-1 text-sm text-gray-500">{description}</p> : null}
+    </div>
+    <div className="p-6">{children}</div>
+  </section>
+);
 
 const ProfilePage = () => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState('Overview');
+  const { user, profile, refreshProfile, updateProfile } = useAuth();
+  const [formData, setFormData] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
+  const [hasLocalChanges, setHasLocalChanges] = useState(false);
+  const hydratedProfileIdRef = useRef(null);
 
-  const profile = {
-    name: 'Acme Corp',
-    tagline: 'Building innovative B2B solutions for African markets',
-    industry: 'Technology',
-    type: 'SaaS Company',
-    location: 'Lagos, Nigeria',
-    founded: '2021',
-    size: '11-50 employees',
-    website: 'www.acmecorp.com',
-    email: 'hello@acmecorp.com',
-    phone: '+234 703 216 8986',
-    bio: 'Acme Corp is a technology company focused on building enterprise SaaS solutions that help businesses across Africa streamline operations, connect with partners, and scale efficiently. Our flagship product is an AI-powered CRM that integrates with major platforms.',
-    services: ['API Integration', 'CRM Solutions', 'B2B SaaS', 'Data Analytics', 'Enterprise Software'],
-    lookingFor: ['Technology Partners', 'Investors', 'Channel Partners', 'Enterprise Clients'],
+  const accountType = user?.accountType || 'personal';
+  const isBusiness = accountType === 'business';
+
+  useEffect(() => {
+    refreshProfile().catch(() => {
+      // Keep the profile already available from login if refresh fails.
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+
+    const profileKey = `${accountType}:${profile.id || profile.userId || 'profile'}`;
+    if (!hasLocalChanges || hydratedProfileIdRef.current !== profileKey) {
+      setFormData(getInitialFormData(profile, accountType));
+      setHasLocalChanges(false);
+      hydratedProfileIdRef.current = profileKey;
+    }
+  }, [accountType, hasLocalChanges, profile]);
+
+  const title = isBusiness
+    ? formData.businessName || profile?.businessName || 'Business profile'
+    : [formData.firstName || profile?.firstName, formData.lastName || profile?.lastName].filter(Boolean).join(' ') || 'Personal profile';
+
+  const subtitle = isBusiness
+    ? formData.contactName || profile?.contactName || 'Primary contact'
+    : formData.headline || profile?.headline || 'Professional profile';
+
+  const completion = useMemo(() => {
+    const fields = isBusiness ? businessFields : personalFields;
+    const completed = fields.filter((field) => String(formData[field] || '').trim()).length;
+    return Math.round((completed / fields.length) * 100);
+  }, [formData, isBusiness]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setHasLocalChanges(true);
+    setStatus('');
+    setError('');
+    setFormData((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setStatus('');
+    setError('');
+    setIsSaving(true);
+
+    try {
+      const updatedProfile = await updateProfile(pickEditableFields(formData, accountType));
+      setFormData(getInitialFormData(updatedProfile, accountType));
+      setHasLocalChanges(false);
+      setStatus('Profile updated successfully.');
+    } catch (submitError) {
+      setError(submitError.message || 'Unable to update profile.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
-    <div>
-      <div className="flex items-start justify-between mb-6">
+    <div className="max-w-7xl">
+      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Business Profile</h1>
-          <p className="text-gray-500 mt-1">Manage how your business appears to others on Connectin.</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent">Profile Management</p>
+          <h1 className="mt-2 text-3xl font-bold text-gray-950">
+            {isBusiness ? 'Business Profile' : 'Personal Profile'}
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-gray-500">
+            Keep your Connectin profile accurate so the right opportunities, partnerships, vendors, investors, and connections can find you.
+          </p>
         </div>
-        {activeTab === 'Overview' && (
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
-              isEditing
-                ? 'bg-green-600 text-white hover:bg-green-700'
-                : 'bg-accent text-white hover:bg-accent-dark'
-            }`}
-          >
-            {isEditing ? 'Save Changes' : 'Edit Profile'}
-          </button>
-        )}
+        <button
+          type="submit"
+          form="profile-form"
+          disabled={isSaving}
+          className="inline-flex items-center justify-center rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {isSaving ? 'Saving profile...' : 'Save changes'}
+        </button>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex gap-1 p-1 bg-gray-100 rounded-lg w-fit mb-7">
-        {['Overview', 'Bookings'].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${
-              activeTab === tab
-                ? 'bg-white text-gray-900 font-semibold shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {tab === 'Bookings' && (
-              <span className="inline-flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                </svg>
-                Bookings
-              </span>
-            )}
-            {tab !== 'Bookings' && tab}
-          </button>
-        ))}
+      <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-5">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-accent/15 bg-accent/10 text-2xl font-black text-accent">
+              {getInitials(title)}
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-2xl font-bold text-gray-950">{title}</h2>
+                <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-gray-600">
+                  {isBusiness ? 'Business' : 'Personal'}
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
+              <p className="mt-2 text-sm font-medium text-gray-700">{user?.email}</p>
+            </div>
+          </div>
+
+          <div className="min-w-full rounded-2xl border border-gray-100 bg-gray-50 p-4 lg:min-w-72">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm font-semibold text-gray-800">Profile completion</span>
+              <span className="text-sm font-bold text-accent">{completion}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+              <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${completion}%` }} />
+            </div>
+            <p className="mt-3 text-xs text-gray-500">
+              Complete more fields to improve match quality and profile credibility.
+            </p>
+          </div>
+        </div>
       </div>
 
-      {activeTab === 'Bookings' && (
-        <div className="max-w-3xl">
-          <div className="mb-6">
-            <h2 className="text-base font-semibold text-gray-900">Manage Your Availability</h2>
-            <p className="text-sm text-gray-500 mt-1">Set the times when you're open for 30-minute meetings. Others can book these slots from your profile.</p>
-          </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/5 border border-accent/15 rounded-full mb-6">
-            <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-xs font-medium text-accent">30-minute meeting slots</span>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <AvailabilityCalendar mode="edit" />
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'Overview' && (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main info */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Header card */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="h-32 bg-gradient-to-r from-accent to-accent-dark" />
-            <div className="px-6 pb-6">
-              <div className="flex items-end gap-4 -mt-10 mb-4">
-                <div className="w-20 h-20 rounded-xl bg-white border-4 border-white shadow-sm flex items-center justify-center text-accent text-2xl font-bold">
-                  AC
-                </div>
-                <div className="pb-1">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-bold text-gray-900">{profile.name}</h2>
-                    <svg className="w-5 h-5 text-accent" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
-                    </svg>
-                  </div>
-                  <p className="text-sm text-gray-500">{profile.tagline}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                  </svg>
-                  {profile.location}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
-                  </svg>
-                  {profile.industry} &middot; {profile.type}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                  </svg>
-                  {profile.size}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* About */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">About</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">{profile.bio}</p>
-          </div>
-
-          {/* Services */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">Services & Expertise</h3>
-            <div className="flex flex-wrap gap-2">
-              {profile.services.map((s) => (
-                <span key={s} className="px-3 py-1.5 bg-accent/5 text-accent text-sm font-medium rounded-full border border-accent/10">
-                  {s}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Looking for */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">Looking For</h3>
-            <div className="flex flex-wrap gap-2">
-              {profile.lookingFor.map((l) => (
-                <span key={l} className="px-3 py-1.5 bg-green-50 text-green-700 text-sm font-medium rounded-full border border-green-100">
-                  {l}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar */}
+      <form id="profile-form" onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px]">
         <div className="space-y-6">
-          {/* Contact */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="text-base font-semibold text-gray-900 mb-4">Contact Information</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-sm">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-                </svg>
-                <span className="text-gray-600">{profile.website}</span>
+          <SectionCard
+            title={isBusiness ? 'Company Identity' : 'Identity'}
+            description={isBusiness ? 'Core details people use to understand your business.' : 'Your basic personal information from signup and profile setup.'}
+          >
+            {isBusiness ? (
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <TextInput label="Business name" name="businessName" value={formData.businessName} onChange={handleChange} placeholder="Acme Technologies" />
+                <TextInput label="Contact name" name="contactName" value={formData.contactName} onChange={handleChange} placeholder="Henry Eyo" />
+                <TextInput label="Industry" name="industry" value={formData.industry} onChange={handleChange} placeholder="Technology, Finance, Manufacturing..." />
+                <label className="block">
+                  <span className="block text-sm font-semibold text-gray-800 mb-1.5">Business type</span>
+                  <select
+                    name="businessType"
+                    value={formData.businessType ?? ''}
+                    onChange={handleChange}
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/10"
+                  >
+                    <option value="">Select business type</option>
+                    <option value="startup">Startup</option>
+                    <option value="sme">SME</option>
+                    <option value="enterprise">Enterprise</option>
+                    <option value="agency">Agency</option>
+                    <option value="nonprofit">Nonprofit</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+                <div className="md:col-span-2">
+                  <TextArea label="Company description" name="description" value={formData.description} onChange={handleChange} placeholder="Describe what your business does, who you serve, and what opportunities you are open to." />
+                </div>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                </svg>
-                <span className="text-gray-600">{profile.email}</span>
+            ) : (
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <TextInput label="First name" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="Henry" />
+                <TextInput label="Last name" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Eyo" />
+                <div className="md:col-span-2">
+                  <TextInput label="Professional headline" name="headline" value={formData.headline} onChange={handleChange} placeholder="Partnerships lead, investor, operator, developer..." />
+                </div>
+                <div className="md:col-span-2">
+                  <TextArea label="Bio" name="bio" value={formData.bio} onChange={handleChange} placeholder="Summarize your background, interests, and the opportunities you want to discover on Connectin." />
+                </div>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                </svg>
-                <span className="text-gray-600">{profile.phone}</span>
-              </div>
-            </div>
-          </div>
+            )}
+          </SectionCard>
 
-          {/* Stats */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="text-base font-semibold text-gray-900 mb-4">Profile Stats</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Profile views</span>
-                <span className="text-sm font-semibold text-gray-900">128</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Connections</span>
-                <span className="text-sm font-semibold text-gray-900">47</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Search appearances</span>
-                <span className="text-sm font-semibold text-gray-900">312</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Trust score</span>
-                <span className="text-sm font-semibold text-green-600">92/100</span>
-              </div>
+          <SectionCard
+            title="Contact & Location"
+            description="These details help people understand where you operate and how to reach you."
+          >
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <TextInput label="Phone" name="phone" value={formData.phone} onChange={handleChange} placeholder="+234 700 000 0000" />
+              <TextInput label="Website" name="website" value={formData.website} onChange={handleChange} placeholder="https://example.com" />
+              <TextInput label="Country" name="country" value={formData.country} onChange={handleChange} placeholder="Nigeria" />
+              <TextInput label="State" name="state" value={formData.state} onChange={handleChange} placeholder="Lagos" />
+              <TextInput label="City" name="city" value={formData.city} onChange={handleChange} placeholder="Ikeja" />
+              <TextInput label="Address" name="address" value={formData.address} onChange={handleChange} placeholder="Business or contact address" />
             </div>
-          </div>
-
-          {/* Profile completeness */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">Profile Completeness</h3>
-            <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
-              <div className="bg-accent h-2 rounded-full" style={{ width: '85%' }} />
-            </div>
-            <p className="text-sm text-gray-500">85% complete — Add a company logo to reach 100%</p>
-          </div>
+          </SectionCard>
         </div>
-      </div>
-      )}
+
+        <aside className="space-y-6">
+          <SectionCard title="Profile Quality" description="Enterprise profiles work best when they are complete and specific.">
+            <div className="space-y-4">
+              {[
+                { label: isBusiness ? 'Identity details' : 'Name and headline', done: isBusiness ? formData.businessName && formData.contactName : formData.firstName && formData.lastName },
+                { label: isBusiness ? 'Business description' : 'Bio', done: isBusiness ? formData.description : formData.bio },
+                { label: 'Contact information', done: formData.phone || formData.website },
+                { label: 'Location', done: formData.country || formData.state || formData.city },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                  <span className="text-sm font-medium text-gray-700">{item.label}</span>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${item.done ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+                    {item.done ? 'Done' : 'Pending'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            {error ? (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {error}
+              </div>
+            ) : null}
+            {status ? (
+              <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+                {status}
+              </div>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="w-full rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isSaving ? 'Saving profile...' : 'Save profile'}
+            </button>
+            <p className="mt-3 text-center text-xs text-gray-500">
+              Changes update your Connectin profile immediately.
+            </p>
+          </section>
+        </aside>
+      </form>
     </div>
   );
 };

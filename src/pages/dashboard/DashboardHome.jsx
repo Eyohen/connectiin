@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const stats = [
   { label: 'Total Connections', value: '47', change: '+5 this week', color: 'text-accent' },
@@ -28,11 +29,20 @@ const upcomingEvents = [
 ];
 
 const DashboardHome = () => {
+  const { user, profile } = useAuth();
+  const firstName = user?.accountType === 'personal'
+    ? profile?.firstName || profile?.displayName?.split(' ')[0]
+    : profile?.contactName?.split(' ')[0] || profile?.businessName || 'there';
+
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Welcome back, John</h1>
-        <p className="text-gray-500 mt-1">Here&apos;s what&apos;s happening with your network today.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName}</h1>
+        <p className="text-gray-500 mt-1">
+          {user?.accountType === 'business'
+            ? 'Here is a snapshot of your business network activity.'
+            : 'Here is a snapshot of your personal network activity.'}
+        </p>
       </div>
 
       {/* Stats */}
