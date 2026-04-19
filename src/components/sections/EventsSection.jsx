@@ -48,7 +48,7 @@ const EventsSection = () => {
             className="rounded-2xl overflow-hidden aspect-[4/3] bg-gray-100"
           >
             <img
-              src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=450&fit=crop"
+              src="/industrymeetups.png"
               alt="Business event"
               className="w-full h-full object-cover"
             />

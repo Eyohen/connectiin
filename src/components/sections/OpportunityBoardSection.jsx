@@ -49,7 +49,7 @@ const OpportunityBoardSection = () => {
             className="rounded-2xl overflow-hidden aspect-[4/3] bg-gray-100"
           >
             <img
-              src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&h=450&fit=crop"
+              src="/boards.png"
               alt="Business collaboration"
               className="w-full h-full object-cover"
             />

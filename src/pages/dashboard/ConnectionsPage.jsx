@@ -1,4 +1,6 @@
+/* eslint-disable react/prop-types */
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 
 const tabs = ['All Connections', 'Pending', 'Sent'];
@@ -28,6 +30,7 @@ const ConnectionRow = ({ item, actions }) => (
 );
 
 const ConnectionsPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('All Connections');
   const [groups, setGroups] = useState({ connected: [], pendingReceived: [], pendingSent: [] });
   const [isLoading, setIsLoading] = useState(true);
@@ -114,7 +117,10 @@ const ConnectionsPage = () => {
                       key={item.id}
                       item={item}
                       actions={(
-                        <button className="px-3 py-1.5 text-xs font-medium text-accent border border-accent rounded-lg hover:bg-accent hover:text-white transition-all">
+                        <button
+                          onClick={() => navigate(`/dashboard/messages?userId=${item.userId}`)}
+                          className="px-3 py-1.5 text-xs font-medium text-accent border border-accent rounded-lg hover:bg-accent hover:text-white transition-all"
+                        >
                           Message
                         </button>
                       )}

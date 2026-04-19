@@ -3,27 +3,27 @@ import { motion } from 'framer-motion';
 const audiences = [
   {
     title: 'SMEs',
-    image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=400&h=300&fit=crop',
+    image: '/smes.jpeg',
   },
   {
     title: 'Startups',
-    image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&h=300&fit=crop',
+    image: '/startups.png',
   },
   {
     title: 'Corporate teams',
-    image: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=400&h=300&fit=crop',
+    image: '/teams.png',
   },
   {
     title: 'Professional service providers',
-    image: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&h=300&fit=crop',
+    image: '/serviceprofessional.png',
   },
   {
     title: 'Industry experts & consultants',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop',
+    image: '/industryexpert.png',
   },
   {
     title: 'Business leaders',
-    image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=300&fit=crop',
+    image: '/businessleaders.png',
   },
 ];
 
