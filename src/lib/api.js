@@ -1,7 +1,13 @@
 import axios from 'axios';
 
 const ACCESS_TOKEN_KEY = 'connectin_access_token';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:8082/api';
+
+const normalizeApiBaseUrl = (value) => {
+  const baseUrl = (value || 'http://localhost:8082/api').replace(/\/+$/, '');
+  return baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+};
+
+const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL);
 
 let refreshRequest = null;
 
