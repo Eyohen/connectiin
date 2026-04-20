@@ -22,6 +22,7 @@ const MessagesPage = () => {
   const { user, profile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const targetUserId = searchParams.get('userId');
+  const targetRoomId = searchParams.get('roomId');
   const [contacts, setContacts] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [activeRoom, setActiveRoom] = useState(null);
@@ -36,6 +37,7 @@ const MessagesPage = () => {
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
   const autoOpenUserRef = useRef('');
+  const autoOpenRoomRef = useRef('');
 
   const currentUserName = user?.accountType === 'business'
     ? profile?.businessName || profile?.contactName || user?.email
@@ -144,6 +146,8 @@ const MessagesPage = () => {
 
   const selectItem = async (item) => {
     if (item.roomId) {
+      autoOpenRoomRef.current = item.roomId;
+      setSearchParams({ roomId: item.roomId }, { replace: true });
       await loadRoom(item.roomId);
       return;
     }
@@ -160,9 +164,8 @@ const MessagesPage = () => {
       const room = response.data.data?.room;
       await loadSidebar();
       await loadRoom(room.roomId);
-      if (targetUserId) {
-        setSearchParams({}, { replace: true });
-      }
+      autoOpenRoomRef.current = room.roomId;
+      setSearchParams({ roomId: room.roomId }, { replace: true });
     } catch (startError) {
       setError(getErrorMessage(startError, 'Failed to start conversation'));
     } finally {
@@ -224,6 +227,21 @@ const MessagesPage = () => {
   // The selected contact is driven by the URL once per target user.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contacts, isLoading, targetUserId]);
+
+  useEffect(() => {
+    if (isLoading || targetUserId || activeRoom?.roomId || roomLoading) return;
+
+    const roomIdToOpen = targetRoomId || conversationItems.find((item) => item.roomId)?.roomId;
+    if (!roomIdToOpen || autoOpenRoomRef.current === roomIdToOpen) return;
+
+    autoOpenRoomRef.current = roomIdToOpen;
+    if (!targetRoomId) {
+      setSearchParams({ roomId: roomIdToOpen }, { replace: true });
+    }
+    loadRoom(roomIdToOpen);
+  // Existing conversations should auto-open once after the sidebar has loaded.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationItems, isLoading, targetRoomId, targetUserId, activeRoom?.roomId, roomLoading]);
 
   useEffect(() => {
     if (!socketUrl || !user?.id) return undefined;
