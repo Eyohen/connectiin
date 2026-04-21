@@ -7,7 +7,7 @@ const tags = [
 
 const OpportunityBoardSection = () => {
   return (
-    <section className="py-20 md:py-28 px-4 bg-white">
+    <section id="solutions" className="py-20 md:py-28 px-4 bg-white scroll-mt-28">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
           <motion.div
@@ -16,6 +16,7 @@ const OpportunityBoardSection = () => {
             viewport={{ once: true, margin: '-100px' }}
             transition={{ duration: 0.6 }}
           >
+            <p className="text-accent font-bold tracking-widest text-sm mb-4 uppercase">Solutions</p>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Opportunity Board: Where Businesses Find Each Other
             </h2>

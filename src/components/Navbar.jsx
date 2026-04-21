@@ -3,12 +3,12 @@ import { Link, useLocation } from 'react-router-dom';
 
 const navLinks = [
   { name: 'Home', href: '/' },
-  { name: 'How it Works', href: '#how-it-works' },
-  { name: 'Features', href: '#features' },
-  { name: 'Solutions', href: '#solutions' },
+  { name: 'How it Works', href: '/how-it-works' },
+  { name: 'Features', href: '/features' },
+  { name: 'Solutions', href: '/solutions' },
   { name: 'Pricing', href: '/pricing' },
-  { name: 'About Us', href: '#about' },
-  { name: 'Contact', href: '#contact' },
+  { name: 'About Us', href: '/about' },
+  { name: 'Contact', href: '/contact' },
 ];
 
 const Navbar = () => {
@@ -21,8 +21,6 @@ const Navbar = () => {
     return false;
   };
 
-  const isRoute = (href) => href.startsWith('/');
-
   return (
     <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[93%] max-w-5xl">
       <div className="flex items-center justify-between px-6 py-3 bg-navy-800/80 backdrop-blur-md border border-white/10 rounded-full">
@@ -33,29 +31,19 @@ const Navbar = () => {
 
         {/* Desktop Nav Links */}
         <div className="hidden lg:flex items-center gap-1">
-          {navLinks.map((link) =>
-            isRoute(link.href) ? (
-              <Link
-                key={link.name}
-                to={link.href}
-                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                  isActive(link.href)
-                    ? 'text-accent'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                {link.name}
-              </Link>
-            ) : (
-              <a
-                key={link.name}
-                href={link.href}
-                className="px-3 py-1.5 text-sm font-medium text-gray-400 hover:text-white transition-colors"
-              >
-                {link.name}
-              </a>
-            )
-          )}
+          {navLinks.map((link) => (
+            <Link
+              key={link.name}
+              to={link.href}
+              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                isActive(link.href)
+                  ? 'text-accent'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              {link.name}
+            </Link>
+          ))}
         </div>
 
         {/* Sign In Button */}
@@ -87,29 +75,18 @@ const Navbar = () => {
       {/* Mobile dropdown */}
       {mobileOpen && (
         <div className="lg:hidden mt-2 p-4 bg-navy-800/95 backdrop-blur-md border border-white/10 rounded-2xl animate-slide-down">
-          {navLinks.map((link) =>
-            isRoute(link.href) ? (
-              <Link
-                key={link.name}
-                to={link.href}
-                className={`block py-2.5 text-sm font-medium ${
-                  isActive(link.href) ? 'text-accent' : 'text-gray-400 hover:text-white'
-                }`}
-                onClick={() => setMobileOpen(false)}
-              >
-                {link.name}
-              </Link>
-            ) : (
-              <a
-                key={link.name}
-                href={link.href}
-                className="block py-2.5 text-sm font-medium text-gray-400 hover:text-white"
-                onClick={() => setMobileOpen(false)}
-              >
-                {link.name}
-              </a>
-            )
-          )}
+          {navLinks.map((link) => (
+            <Link
+              key={link.name}
+              to={link.href}
+              className={`block py-2.5 text-sm font-medium ${
+                isActive(link.href) ? 'text-accent' : 'text-gray-400 hover:text-white'
+              }`}
+              onClick={() => setMobileOpen(false)}
+            >
+              {link.name}
+            </Link>
+          ))}
           <Link to="/login" className="mt-3 block w-full py-2.5 text-sm font-semibold text-accent border border-accent rounded-full hover:bg-accent hover:text-white transition-all text-center" onClick={() => setMobileOpen(false)}>
             Sign In
           </Link>

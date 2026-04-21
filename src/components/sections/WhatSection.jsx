@@ -8,31 +8,48 @@ const features = [
 
 const WhatSection = () => {
   return (
-    <section className="py-20 md:py-28 px-4 bg-white">
+    <section id="how-it-works" className="py-20 md:py-28 px-4 bg-white scroll-mt-28">
       <div className="max-w-6xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.6 }}
-          className="max-w-3xl"
-        >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-            What Connectin Is
-          </h2>
-          <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-4">
-            Connectin is a smart B2B networking platform designed to help businesses find
-            qualified partners, service providers, investors, collaborators, and growth
-            opportunities — all in one place.
-          </p>
-          <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-4">
-            We help you discover brands and companies that matter to your work, your goals,
-            and your next phase of growth.
-          </p>
-          <p className="text-gray-900 font-semibold text-base md:text-lg">
-            This is strategic, data-driven, verified business matchmaking.
-          </p>
-        </motion.div>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.85fr] gap-10 md:gap-16 items-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.6 }}
+            className="max-w-3xl"
+          >
+            <p className="text-accent font-bold tracking-widest text-sm mb-4 uppercase">How it works</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+              What Connectin Is
+            </h2>
+            <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-4">
+              Connectin is a smart B2B networking platform designed to help businesses find
+              qualified partners, service providers, investors, collaborators, and growth
+              opportunities — all in one place.
+            </p>
+            <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-4">
+              We help you discover brands and companies that matter to your work, your goals,
+              and your next phase of growth.
+            </p>
+            <p className="text-gray-900 font-semibold text-base md:text-lg">
+              This is strategic, data-driven, verified business matchmaking.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="overflow-hidden rounded-2xl aspect-[4/3] bg-gray-100"
+          >
+            <img
+              src="/businessleaders.png"
+              alt="African business leaders in a planning session"
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
+        </div>
 
         {/* Platform Preview */}
         <motion.div

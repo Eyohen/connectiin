@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 
-const props = [
+const valueProps = [
   {
     title: 'Find the Right People Faster',
     description: 'No more guessing, cold outreach, or random events. Our AI-powered engine analyzes your business needs and connects you with the right partners, service providers, and collaborators.',
@@ -41,20 +41,32 @@ const props = [
 
 const ValuePropsSection = () => {
   return (
-    <section className="py-20 md:py-28 px-4 bg-white">
+    <section id="features" className="py-20 md:py-28 px-4 bg-white scroll-mt-28">
       <div className="max-w-5xl mx-auto">
-        <motion.h2
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-100px' }}
           transition={{ duration: 0.6 }}
-          className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-14"
+          className="grid grid-cols-1 md:grid-cols-[0.85fr_1fr] gap-8 md:gap-12 items-center mb-14"
         >
-          Core Value Propositions
-        </motion.h2>
+          <div className="overflow-hidden rounded-2xl aspect-[4/3] bg-gray-100">
+            <img
+              src="/teams.png"
+              alt="African business team reviewing growth opportunities"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div>
+            <p className="text-accent font-bold tracking-widest text-sm mb-4 uppercase">Features</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+              Core Value Propositions
+            </h2>
+          </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-          {props.map((prop, i) => (
+          {valueProps.map((prop, i) => (
             <motion.div
               key={prop.title}
               initial={{ opacity: 0, y: 20 }}

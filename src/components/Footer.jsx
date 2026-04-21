@@ -1,13 +1,16 @@
+import { Link } from 'react-router-dom';
+
 const quickLinks = [
-  { name: 'Home', href: '#home' },
-  { name: 'How it Works', href: '#how-it-works' },
-  { name: 'Features', href: '#features' },
-  { name: 'Pricing', href: '#pricing' },
+  { name: 'Home', href: '/' },
+  { name: 'How it Works', href: '/how-it-works' },
+  { name: 'Features', href: '/features' },
+  { name: 'Pricing', href: '/pricing' },
 ];
 
 const companyLinks = [
-  { name: 'About', href: '#about' },
-  { name: 'Contact', href: '#contact' },
+  { name: 'Solutions', href: '/solutions' },
+  { name: 'About', href: '/about' },
+  { name: 'Contact', href: '/contact' },
 ];
 
 const Footer = () => {
@@ -29,9 +32,9 @@ const Footer = () => {
             <ul className="space-y-2.5">
               {quickLinks.map((link) => (
                 <li key={link.name}>
-                  <a href={link.href} className="text-gray-500 hover:text-white text-sm transition-colors">
+                  <Link to={link.href} className="text-gray-500 hover:text-white text-sm transition-colors">
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -43,9 +46,9 @@ const Footer = () => {
             <ul className="space-y-2.5">
               {companyLinks.map((link) => (
                 <li key={link.name}>
-                  <a href={link.href} className="text-gray-500 hover:text-white text-sm transition-colors">
+                  <Link to={link.href} className="text-gray-500 hover:text-white text-sm transition-colors">
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

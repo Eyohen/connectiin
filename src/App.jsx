@@ -4,6 +4,11 @@ import LoginPage from './pages/LoginPage'
 import SignUpPage from './pages/SignUpPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
 import PricingPage from './pages/PricingPage'
+import HowItWorksPage from './pages/HowItWorksPage'
+import FeaturesPage from './pages/FeaturesPage'
+import SolutionsPage from './pages/SolutionsPage'
+import AboutPage from './pages/AboutPage'
+import ContactPage from './pages/ContactPage'
 import DashboardLayout from './components/dashboard/DashboardLayout'
 import DashboardHome from './pages/dashboard/DashboardHome'
 import DiscoverPage from './pages/dashboard/DiscoverPage'
@@ -24,6 +29,11 @@ function App() {
       <Route path="/signup" element={<PublicOnlyRoute><SignUpPage /></PublicOnlyRoute>} />
       <Route path="/verify-email" element={<PublicOnlyRoute><VerifyEmailPage /></PublicOnlyRoute>} />
       <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/how-it-works" element={<HowItWorksPage />} />
+      <Route path="/features" element={<FeaturesPage />} />
+      <Route path="/solutions" element={<SolutionsPage />} />
+      <Route path="/about" element={<AboutPage />} />
+      <Route path="/contact" element={<ContactPage />} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<DashboardHome />} />
         <Route path="discover" element={<DiscoverPage />} />
